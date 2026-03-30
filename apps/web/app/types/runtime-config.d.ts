@@ -5,6 +5,15 @@ declare module 'nuxt/schema' {
     authAnonKey: string
     authServiceRoleKey: string
     authStorageKey: string
+    domainPurchaseUrlTemplate: string
+    domainLookupPrimaryProvider: string
+    domainLookupFallbackProvider: string
+    domainLookupShadowProviders: string[]
+    domainLookupTimeoutMs: number
+    domainLookupBootstrapTtlSeconds: number
+    domainLookupAuthoritativeRdapEnabled: boolean
+    domainrClientId: string
+    whoisxmlApiKey: string
     turnstileSecretKey: string
   }
 

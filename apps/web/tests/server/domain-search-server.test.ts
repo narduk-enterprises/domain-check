@@ -1,11 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const fetchMock = vi.fn()
+const runtimeConfig = {
+  domainPurchaseUrlTemplate: 'https://registrar.test/search?domain={domain}',
+  domainLookupPrimaryProvider: 'rdap-proxy',
+  domainLookupFallbackProvider: '',
+  domainLookupShadowProviders: [],
+  domainLookupTimeoutMs: 3000,
+  domainLookupBootstrapTtlSeconds: 60 * 60 * 24,
+  domainLookupAuthoritativeRdapEnabled: true,
+  domainrClientId: '',
+  whoisxmlApiKey: '',
+}
 
 vi.stubGlobal('fetch', fetchMock)
-vi.stubGlobal('useRuntimeConfig', () => ({
-  domainPurchaseUrlTemplate: 'https://registrar.test/search?domain={domain}',
-}))
+vi.stubGlobal('useRuntimeConfig', () => runtimeConfig)
 
 const { searchDomains } = await import('../../server/utils/domainSearch')
 

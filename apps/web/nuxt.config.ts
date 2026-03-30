@@ -28,6 +28,13 @@ function parseAuthProviders(value: string | undefined) {
     .filter((provider, index, providers) => provider && providers.indexOf(provider) === index)
 }
 
+function parseDomainLookupProviders(value: string | undefined) {
+  return (value || '')
+    .split(',')
+    .map((provider) => provider.trim().toLowerCase())
+    .filter((provider, index, providers) => provider && providers.indexOf(provider) === index)
+}
+
 const authProviders =
   authBackend === 'supabase' ? parseAuthProviders(process.env.AUTH_PROVIDERS) : ['email']
 
@@ -66,6 +73,19 @@ export default defineNuxtConfig({
     domainPurchaseUrlTemplate:
       process.env.DOMAIN_PURCHASE_URL_TEMPLATE ||
       'https://www.namecheap.com/domains/registration/results/?domain={domain}',
+    domainLookupPrimaryProvider: process.env.DOMAIN_LOOKUP_PRIMARY_PROVIDER || 'hybrid',
+    domainLookupFallbackProvider: process.env.DOMAIN_LOOKUP_FALLBACK_PROVIDER || 'rdap-proxy',
+    domainLookupShadowProviders: parseDomainLookupProviders(
+      process.env.DOMAIN_LOOKUP_SHADOW_PROVIDERS,
+    ),
+    domainLookupTimeoutMs: Number(process.env.DOMAIN_LOOKUP_TIMEOUT_MS || 3000),
+    domainLookupBootstrapTtlSeconds: Number(
+      process.env.DOMAIN_LOOKUP_BOOTSTRAP_TTL_SECONDS || 60 * 60 * 24,
+    ),
+    domainLookupAuthoritativeRdapEnabled:
+      process.env.DOMAIN_LOOKUP_AUTHORITATIVE_RDAP_ENABLED !== 'false',
+    domainrClientId: process.env.DOMAINR_CLIENT_ID || '',
+    whoisxmlApiKey: process.env.WHOISXML_API_KEY || '',
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || '',
     // Server-only (admin API routes)
     googleServiceAccountKey: process.env.GSC_SERVICE_ACCOUNT_JSON || '',
