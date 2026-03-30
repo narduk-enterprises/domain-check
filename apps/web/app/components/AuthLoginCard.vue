@@ -196,12 +196,7 @@ function toUserFacingError(error: unknown, fallback: string) {
         <span class="h-px flex-1 bg-default" />
       </div>
 
-      <UForm
-        :schema="schema"
-        :state="state"
-        class="space-y-4"
-        @keydown.enter.prevent="onSubmit"
-      >
+      <UForm :schema="schema" :state="state" class="space-y-4" @keydown.enter.prevent="onSubmit">
         <UFormField name="email" label="Email">
           <UInput
             v-model="state.email"
