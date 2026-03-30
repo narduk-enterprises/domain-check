@@ -16,7 +16,6 @@ export const VERBATIM_SYNC_FILES = [
   'tools/install-git-hooks.cjs',
   'tools/command.ts',
   'tools/gsc-verify.ts',
-  'tools/provision-metadata.ts',
   'tools/update-layer.ts',
   'tools/validate.ts',
 
