@@ -1,55 +1,135 @@
-Status: MVP
+Status: V1
 
 # Quick Domain Check
 
 Source: provision.json (domain-check)
 
-## Product
+## Product story
 
-A tool for checking if domains are available
+Quick Domain Check has two truths that must stay aligned:
+
+1. The shipped MVP is a fast public utility for checking domain availability.
+2. V1 extends that baseline with canonical route pages, optional auth-backed
+   saved searches, and a single registrar clickout path for available domains.
+
+## Audience
+
+- Founders and indie builders naming startups, products, and side projects
+- Secondary users: operators or agencies doing lightweight name validation for
+  clients
+
+## Primary conversion
+
+- Submit a domain query and immediately understand whether a viable name is
+  still open
+
+## Secondary conversion
+
+- Click out to the preferred registrar for an available domain
+- Save a query to revisit it later from the authenticated dashboard
 
 ## In scope
 
-- Single public homepage for instant domain checks
-- Query-param driven search via `?q=`
-- Live availability checks for a small set of common TLDs
-- Exact-domain-first lookups when the user pastes a full domain
-- Simple result states: available, taken, unknown
+- Public landing/search route at `/`
+- Canonical keyword result pages at `/q/[label]`
+- Canonical exact-domain result pages at `/d/[domain]`
+- Backward-compatible support for legacy `/?q=` URLs, normalized to the
+  canonical route shape
+- Live RDAP-backed checks across the current 8-TLD shortlist
+- Purchase CTA only for available domains, derived from a single runtime
+  purchase URL template
+- Auth-backed saved searches at `/dashboard`
+- Login/register reuse from the existing layer auth stack
+- Core analytics events for search submit, save, remove, and registrar clickout
 
 ## Out of scope
 
-- Account features, saved searches, watchlists, and alerts
-- Domain purchase or registrar checkout flows
-- Exhaustive TLD coverage beyond the curated fast list
-- Historical whois data, pricing, or DNS record management
+- Watchlists, alerts, notifications, or background re-checking
+- Domain pricing, multi-registrar comparison, or checkout in-app
+- ccTLD expansion or a broader noisy TLD surface
+- Exact-domain SEO pages as crawl targets
+- Custom admin/operator panels for domain tuning
 
-## User flows
+## Public route groups
 
-1. User lands on `/`, types a word like `atlas`, and sees live status results
-   for the common endings.
-2. User pastes a full domain like `atlas.com`; the app checks that exact match
-   first and still shows the shortlist.
-3. User shares or reloads `/` with `?q=atlas`, and the search restores from the
-   URL.
-4. User opens the RDAP inspection link for any result that needs deeper
-   verification.
+- `/`
+  - Empty-state search entry point
+- `/q/[label]`
+  - Indexable keyword result page with live results
+- `/d/[domain]`
+  - Shareable exact-domain result page with `noindex`
+- `/login`, `/register`, `/auth/callback`, `/auth/confirm`, `/reset-password`
+  - Existing auth routes reused without a parallel auth stack
+
+## Authenticated route groups
+
+- `/dashboard`
+  - Saved-search home for the signed-in user
+
+## Core user flows
+
+1. Visitor lands on `/`, searches for a keyword like `atlas`, and lands on
+   `/q/atlas`.
+2. Visitor pastes an exact domain like `atlas.com` and lands on `/d/atlas.com`.
+3. Visitor opens a legacy `/?q=` link and is redirected to the canonical path.
+4. Visitor inspects the shortlist and clicks the registrar CTA only on domains
+   marked available.
+5. Signed-in user saves a query and sees it appear in `/dashboard`.
+6. Signed-out user attempts to save, goes through auth, then returns to the
+   active domain-check route.
 
 ## Conceptual data model
 
 - Search query
-- Base label
-- Exact domain, when present
+- Normalized query
+- Query kind (`keyword` or `exact`)
 - Candidate domains
 - Result status
-- Registrar name, when available
-- Expiration date, when available
+- Result reason
+- RDAP verification URL
+- Registrar metadata
+- Purchase URL
+- Saved search
 
-## Pages / routes
+## App-owned data
 
-- `/`
-  - Public landing page and search experience
-- `/api/domain/search`
-  - Public GET endpoint returning domain status results for a single query
+### `saved_searches`
+
+- `id`
+- `userId`
+- `query`
+- `normalizedQuery`
+- `createdAt`
+- `updatedAt`
+
+Constraints:
+
+- Unique on `(userId, normalizedQuery)`
+- One saved record per normalized query per user
+
+## Search behavior
+
+- Keep the current shortlist: `.com`, `.ai`, `.io`, `.app`, `.dev`, `.co`,
+  `.net`, `.org`
+- Continue exact-match-first candidate ordering when a full domain is provided
+- Keep result states `available`, `taken`, and `unknown`
+- Continue the lightweight cache posture on the public search endpoint
+- Only available results receive a purchase CTA
+
+## SEO and discoverability
+
+- `/q/[label]` is indexable and should carry canonical metadata to itself
+- `/d/[domain]` is functional and shareable, but not part of organic landing
+  scope and should emit `noindex`
+- Every route continues to use `useSeo(...)` and a Schema.org helper
+
+## Trust and product constraints
+
+- RDAP remains the source of truth for live checks in v1
+- Results should stay simple and legible rather than becoming a registrar
+  marketplace
+- Saved searches store the normalized query only and always reopen fresh live
+  results
 
 ## Non-functional
 
@@ -74,15 +154,12 @@ exposes them; do not duplicate trackers or admin APIs. If something is missing,
 extend the layer only when the feature is reusable across apps; otherwise keep
 changes in apps/web/ and still call into layer utilities.
 
-## Test acceptance (MVP)
+## Test acceptance
 
 - `pnpm --filter web lint`
 - `pnpm --filter web typecheck`
-- `pnpm --filter web exec vitest run tests/server/domain-search.test.ts`
-- Homepage renders a single focused search flow with live results
-
-## Open questions
-
-- Which additional TLDs matter enough to justify slower lookups
-- Whether to add registrar outbound links for available domains
-- Whether to cache recent results more aggressively at the edge
+- `pnpm --filter web exec vitest run tests/server/domain-search.test.ts tests/server/domain-search-server.test.ts tests/server/saved-searches.test.ts tests/server/saved-searches-api.test.ts`
+- `pnpm --filter web run test:e2e -- --project=web apps/web/tests/e2e/smoke.spec.ts apps/web/tests/e2e/domain-search.spec.ts`
+- `/q/[label]` renders a canonical keyword page with live results
+- `/d/[domain]` renders a canonical exact-domain page with `noindex`
+- `/dashboard` lists, reopens, and removes saved searches for the current user

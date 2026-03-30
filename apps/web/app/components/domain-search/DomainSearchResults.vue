@@ -8,6 +8,9 @@ const props = defineProps<{
   results: DomainResult[]
   errorMessage: string | null
 }>()
+const emit = defineEmits<{
+  registrarClick: [domain: string, placement: 'result']
+}>()
 
 const availableCount = computed(
   () => props.results.filter((result) => result.status === 'available').length,
@@ -147,16 +150,31 @@ const helperText = (result: DomainResult) => {
               </div>
             </div>
 
-            <UButton
-              :to="result.rdapUrl"
-              external
-              target="_blank"
-              color="neutral"
-              variant="ghost"
-              icon="i-lucide-arrow-up-right"
-            >
-              Inspect
-            </UButton>
+            <div class="flex flex-wrap items-center gap-2">
+              <UButton
+                v-if="result.purchaseUrl"
+                :to="result.purchaseUrl"
+                external
+                target="_blank"
+                color="primary"
+                variant="soft"
+                icon="i-lucide-shopping-cart"
+                @click="emit('registrarClick', result.domain, 'result')"
+              >
+                Register
+              </UButton>
+
+              <UButton
+                :to="result.rdapUrl"
+                external
+                target="_blank"
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-arrow-up-right"
+              >
+                Inspect
+              </UButton>
+            </div>
           </div>
         </UCard>
       </li>

@@ -63,6 +63,9 @@ export default defineNuxtConfig({
     authAnonKey: process.env.SUPABASE_AUTH_ANON_KEY || '',
     authServiceRoleKey: process.env.SUPABASE_AUTH_SERVICE_ROLE_KEY || '',
     authStorageKey: process.env.AUTH_STORAGE_KEY || 'web-auth',
+    domainPurchaseUrlTemplate:
+      process.env.DOMAIN_PURCHASE_URL_TEMPLATE ||
+      'https://www.namecheap.com/domains/registration/results/?domain={domain}',
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || '',
     // Server-only (admin API routes)
     googleServiceAccountKey: process.env.GSC_SERVICE_ACCOUNT_JSON || '',

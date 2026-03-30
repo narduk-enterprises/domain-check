@@ -1,32 +1,48 @@
 <script setup lang="ts">
+import type { SavedSearchRecord } from '#shared/savedSearches'
+
 definePageMeta({ middleware: ['auth'] })
 
 const config = useRuntimeConfig()
 const { user, logout } = useAuth()
+const savedSearches = useSavedSearches()
 
 useSeo({
-  title: 'Dashboard',
-  description: 'Your authenticated dashboard for this app.',
+  title: 'Saved Searches',
+  description: 'Reopen the domain queries you decided were worth keeping.',
 })
 
 useWebPageSchema({
-  name: 'Dashboard',
-  description: 'Your authenticated dashboard for this app.',
+  name: 'Saved Searches',
+  description: 'Reopen the domain queries you decided were worth keeping.',
 })
 
 async function signOut() {
   await logout()
   await navigateTo(config.public.authLoginPath, { replace: true })
 }
+
+async function removeSavedSearch(savedSearch: SavedSearchRecord) {
+  try {
+    await savedSearches.removeSavedSearch(savedSearch)
+  } catch {
+    // The dashboard renders the mutation error directly.
+  }
+}
 </script>
 
 <template>
   <UPage>
     <UPageHero
-      title="Welcome back"
-      :description="user?.email ? `Signed in as ${user.email}` : 'Your session is active.'"
+      title="Saved searches"
+      :description="
+        user?.email
+          ? `Signed in as ${user.email}. Keep the domain ideas worth returning to.`
+          : 'Your session is active.'
+      "
     >
       <template #links>
+        <UButton to="/" color="primary" variant="soft" icon="i-lucide-search"> New search </UButton>
         <UButton
           color="neutral"
           variant="outline"
@@ -40,55 +56,16 @@ async function signOut() {
     </UPageHero>
 
     <UPageSection
-      title="Protected route confirmed"
-      description="This app keeps its own first-party session while sharing identity with the fleet auth backend."
+      title="Your shortlist"
+      description="Saved queries stay lightweight: one record per normalized query, always reopened with fresh live results."
     >
-      <UCard data-testid="auth-dashboard" class="max-w-2xl">
-        <div class="space-y-4">
-          <div>
-            <p class="text-sm text-muted">Current user</p>
-            <p class="font-medium" data-testid="auth-user-email">
-              {{ user?.email || 'Unknown user' }}
-            </p>
-          </div>
-
-          <div>
-            <p class="text-sm text-muted">Display name</p>
-            <p class="font-medium" data-testid="auth-user-name">{{ user?.name || 'User' }}</p>
-          </div>
-
-          <div class="flex flex-wrap gap-2">
-            <UBadge color="neutral" variant="subtle">
-              {{ user?.authBackend === 'supabase' ? 'Shared auth enabled' : 'Local auth fallback' }}
-            </UBadge>
-            <UBadge
-              v-for="provider in user?.authProviders || []"
-              :key="provider"
-              color="primary"
-              variant="soft"
-            >
-              {{ provider }}
-            </UBadge>
-            <UBadge v-if="user?.aal" color="success" variant="subtle">
-              {{ user.aal.toUpperCase() }}
-            </UBadge>
-          </div>
-
-          <UAlert
-            v-if="user?.needsPasswordSetup"
-            color="warning"
-            variant="subtle"
-            title="Set an email password"
-            description="This account was created with Apple. Add a password if you want email login as a fallback."
-          >
-            <template #actions>
-              <UButton :to="config.public.authResetPath" color="warning" variant="soft" size="sm">
-                Set password
-              </UButton>
-            </template>
-          </UAlert>
-        </div>
-      </UCard>
+      <SavedSearchesSavedSearchDashboard
+        :is-loading="savedSearches.isLoading.value"
+        :mutation-error="savedSearches.mutationError.value"
+        :removing-ids="savedSearches.removingIds.value"
+        :saved-searches="savedSearches.savedSearches.value"
+        @remove="removeSavedSearch"
+      />
     </UPageSection>
   </UPage>
 </template>

@@ -1,3 +1,4 @@
+import type { H3Event } from 'h3'
 import type {
   DomainCandidate,
   DomainReason,
@@ -13,6 +14,8 @@ import {
 
 const RDAP_ACCEPT_HEADER = 'application/rdap+json, application/json'
 const RDAP_TIMEOUT_MS = 3000
+const DEFAULT_PURCHASE_URL_TEMPLATE =
+  'https://www.namecheap.com/domains/registration/results/?domain={domain}'
 
 interface RdapEvent {
   eventAction?: string
@@ -34,7 +37,8 @@ function buildDomainResult(
   candidate: DomainCandidate,
   status: DomainResult['status'],
   reason: DomainReason,
-  extras: Pick<DomainResult, 'registrar' | 'expiresAt'> = {
+  extras: Pick<DomainResult, 'purchaseUrl' | 'registrar' | 'expiresAt'> = {
+    purchaseUrl: null,
     registrar: null,
     expiresAt: null,
   },
@@ -44,8 +48,28 @@ function buildDomainResult(
     status,
     reason,
     rdapUrl: rdapUrlForDomain(candidate.domain),
+    purchaseUrl: status === 'available' ? (extras.purchaseUrl ?? null) : null,
     registrar: extras.registrar,
     expiresAt: extras.expiresAt,
+  }
+}
+
+function buildPurchaseUrl(event: H3Event, domain: string) {
+  const config = useRuntimeConfig(event)
+  const template = `${config.domainPurchaseUrlTemplate || DEFAULT_PURCHASE_URL_TEMPLATE}`.trim()
+  if (!template) return null
+
+  const encodedDomain = encodeURIComponent(domain)
+  if (template.includes('{domain}')) {
+    return template.replaceAll('{domain}', encodedDomain)
+  }
+
+  try {
+    const url = new URL(template)
+    url.searchParams.set('domain', domain)
+    return url.toString()
+  } catch {
+    return null
   }
 }
 
@@ -81,9 +105,10 @@ function readExpiration(record: RdapRecord) {
   return typeof expirationEvent?.eventDate === 'string' ? expirationEvent.eventDate : null
 }
 
-async function checkDomain(candidate: DomainCandidate) {
+async function checkDomain(event: H3Event, candidate: DomainCandidate) {
   const abortController = new AbortController()
   const timeoutHandle = setTimeout(() => abortController.abort(), RDAP_TIMEOUT_MS)
+  const purchaseUrl = buildPurchaseUrl(event, candidate.domain)
 
   try {
     const response = await fetch(rdapUrlForDomain(candidate.domain), {
@@ -95,7 +120,11 @@ async function checkDomain(candidate: DomainCandidate) {
     })
 
     if (response.status === 404) {
-      return buildDomainResult(candidate, 'available', 'rdap-missing')
+      return buildDomainResult(candidate, 'available', 'rdap-missing', {
+        purchaseUrl,
+        registrar: null,
+        expiresAt: null,
+      })
     }
 
     if (response.status === 429) {
@@ -109,6 +138,7 @@ async function checkDomain(candidate: DomainCandidate) {
     const record = (await response.json().catch(() => null)) as RdapRecord | null
 
     return buildDomainResult(candidate, 'taken', 'rdap-found', {
+      purchaseUrl,
       registrar: record ? readRegistrar(record) : null,
       expiresAt: record ? readExpiration(record) : null,
     })
@@ -123,7 +153,7 @@ async function checkDomain(candidate: DomainCandidate) {
   }
 }
 
-export async function searchDomains(query: string): Promise<DomainSearchResponse> {
+export async function searchDomains(event: H3Event, query: string): Promise<DomainSearchResponse> {
   const normalizedQuery = normalizeDomainQuery(query)
   const response = emptyDomainSearchResponse(query)
   const candidates = buildCandidateDomains(normalizedQuery)
@@ -132,7 +162,7 @@ export async function searchDomains(query: string): Promise<DomainSearchResponse
     return response
   }
 
-  const results = await Promise.all(candidates.map((candidate) => checkDomain(candidate)))
+  const results = await Promise.all(candidates.map((candidate) => checkDomain(event, candidate)))
 
   return {
     ...response,

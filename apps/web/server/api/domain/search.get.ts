@@ -13,5 +13,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'A domain query is required.' })
   }
 
-  return await searchDomains(query.data.q)
+  return await searchDomains(event, query.data.q)
 })

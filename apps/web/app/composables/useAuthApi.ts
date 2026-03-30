@@ -37,7 +37,12 @@ export function useAuthApi() {
   const csrfFetch = (nuxtApp.$csrfFetch ?? $fetch) as typeof $fetch
   const csrfHeaders = { 'X-Requested-With': 'XMLHttpRequest' } as const
 
-  function login(payload: { email: string; password: string; captchaToken?: string }) {
+  function login(payload: {
+    email: string
+    password: string
+    captchaToken?: string
+    next?: string
+  }) {
     return csrfFetch<LegacyAuthMutationResult>('/api/auth/login', {
       method: 'POST',
       body: payload,

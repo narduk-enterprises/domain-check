@@ -36,12 +36,22 @@ const loading = ref(false)
 const appleLoading = ref(false)
 const errorMsg = ref('')
 const infoMsg = ref('')
+const isInteractive = ref(false)
 
 const canUseApple = computed(
   () => config.public.authBackend === 'supabase' && config.public.authProviders.includes('apple'),
 )
 const canRegister = computed(() => config.public.authPublicSignup)
-const resolvedRedirectPath = computed(() => props.redirectPath || config.public.authRedirectPath)
+const nextQuery = computed(() =>
+  typeof route.query.next === 'string' ? route.query.next : undefined,
+)
+const resolvedRedirectPath = computed(
+  () => props.redirectPath || nextQuery.value || config.public.authRedirectPath,
+)
+const registerLink = computed(() => ({
+  path: config.public.authRegisterPath,
+  ...(nextQuery.value ? { query: { next: nextQuery.value } } : {}),
+}))
 
 watchEffect(() => {
   if (typeof route.query.email === 'string' && !state.email) {
@@ -61,6 +71,10 @@ watchEffect(() => {
   infoMsg.value = ''
 })
 
+onMounted(() => {
+  isInteractive.value = true
+})
+
 async function onSubmit() {
   const parsed = schema.safeParse(state)
   if (!parsed.success) {
@@ -75,6 +89,7 @@ async function onSubmit() {
     const result = await login({
       email: state.email,
       password: state.password,
+      next: resolvedRedirectPath.value,
     })
 
     if (result.user) {
@@ -166,6 +181,7 @@ function toUserFacingError(error: unknown, fallback: string) {
         variant="solid"
         class="w-full justify-center"
         :loading="appleLoading"
+        :disabled="!isInteractive"
         @click="onAppleSignIn"
       >
         Continue with Apple
@@ -180,7 +196,12 @@ function toUserFacingError(error: unknown, fallback: string) {
         <span class="h-px flex-1 bg-default" />
       </div>
 
-      <UForm :schema="schema" :state="state" class="space-y-4" @submit.prevent="onSubmit">
+      <UForm
+        :schema="schema"
+        :state="state"
+        class="space-y-4"
+        @keydown.enter.prevent="onSubmit"
+      >
         <UFormField name="email" label="Email">
           <UInput
             v-model="state.email"
@@ -208,11 +229,13 @@ function toUserFacingError(error: unknown, fallback: string) {
         </div>
 
         <UButton
-          type="submit"
+          type="button"
           color="primary"
           class="w-full justify-center"
           :loading="loading"
+          :disabled="!isInteractive"
           data-testid="auth-login-submit"
+          @click="onSubmit"
         >
           Sign In
         </UButton>
@@ -223,10 +246,7 @@ function toUserFacingError(error: unknown, fallback: string) {
       <p class="text-center text-sm text-muted">
         <template v-if="canRegister">
           Don&apos;t have an account?
-          <ULink
-            :to="config.public.authRegisterPath"
-            class="font-medium text-primary hover:underline"
-          >
+          <ULink :to="registerLink" class="font-medium text-primary hover:underline">
             Sign up
           </ULink>
         </template>

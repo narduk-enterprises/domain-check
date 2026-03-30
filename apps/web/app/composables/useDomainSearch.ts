@@ -1,16 +1,25 @@
 import type { DomainSearchResponse } from '#shared/domainSearch'
-import { emptyDomainSearchResponse, normalizeDomainQuery } from '#shared/domainSearch'
+import {
+  buildCanonicalSearchPath,
+  emptyDomainSearchResponse,
+  getDomainQueryKind,
+  normalizeDomainQuery,
+  readDomainRouteQuery,
+} from '#shared/domainSearch'
 
-function readQueryValue(value: unknown) {
-  if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : ''
-  return typeof value === 'string' ? value : ''
-}
-
-export async function useDomainSearch() {
+export function useDomainSearch() {
   const route = useRoute()
   const router = useRouter()
+  const { capture } = usePosthog()
 
-  const initialQuery = normalizeDomainQuery(readQueryValue(route.query.q))
+  const routeQuery = computed(() =>
+    readDomainRouteQuery({
+      label: route.params.label,
+      domain: route.params.domain,
+      q: route.query.q,
+    }),
+  )
+  const initialQuery = routeQuery.value
   const rawQuery = shallowRef(initialQuery)
   const settledQuery = shallowRef(initialQuery)
   const normalizedQuery = computed(() => normalizeDomainQuery(rawQuery.value))
@@ -44,43 +53,35 @@ export async function useDomainSearch() {
     { immediate: true },
   )
 
-  watch(
-    () => route.query.q,
-    (value) => {
-      if (!import.meta.client) return
+  watch(routeQuery, (nextQuery) => {
+    if (!import.meta.client) return
+    if (nextQuery === normalizedQuery.value) return
 
-      const nextQuery = normalizeDomainQuery(readQueryValue(value))
-      if (nextQuery === normalizedQuery.value) return
-
-      rawQuery.value = nextQuery
-      settledQuery.value = nextQuery
-    },
-  )
+    rawQuery.value = nextQuery
+    settledQuery.value = nextQuery
+  })
 
   watch(settledQuery, async (value) => {
     if (!import.meta.client) return
 
-    const currentQuery = normalizeDomainQuery(readQueryValue(route.query.q))
-    if (value === currentQuery) return
+    const targetPath = buildCanonicalSearchPath(value)
+    const hasLegacyQuery = typeof route.query.q === 'string' || Array.isArray(route.query.q)
+    if (route.path === targetPath && !hasLegacyQuery) return
 
-    const nextQuery = { ...route.query }
-    if (value) nextQuery.q = value
-    else delete nextQuery.q
-
-    await router.replace({ query: nextQuery })
+    await router.replace(targetPath)
   })
 
   onBeforeUnmount(() => {
     clearScheduledLookup()
   })
 
-  const { data, error, status, refresh } = await useAsyncData<DomainSearchResponse>(
+  const { data, error, status, refresh } = useAsyncData<DomainSearchResponse>(
     'domain-search',
     async (_nuxtApp, { signal }) => {
       const query = settledQuery.value
       if (!query) return emptyDomainSearchResponse()
 
-      return await $fetch('/api/domain/search', {
+      return await $fetch<DomainSearchResponse>('/api/domain/search' as string, {
         query: { q: query },
         signal,
       })
@@ -90,9 +91,17 @@ export async function useDomainSearch() {
       default: () => emptyDomainSearchResponse(initialQuery),
       deep: false,
       dedupe: 'cancel',
-      server: false,
     },
   )
+
+  watch(settledQuery, (value, previousValue) => {
+    if (!import.meta.client || !value || value === previousValue) return
+
+    capture('domain_search_submitted', {
+      query: value,
+      queryKind: getDomainQueryKind(value),
+    })
+  })
 
   const hasQuery = computed(() => settledQuery.value.length > 0)
   const results = computed(() => data.value?.results ?? [])

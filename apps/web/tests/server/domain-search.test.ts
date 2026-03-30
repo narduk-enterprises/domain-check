@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildCanonicalSearchPath,
   buildCandidateDomains,
   emptyDomainSearchResponse,
+  getDomainQueryKind,
   normalizeDomainQuery,
+  readDomainRouteQuery,
   splitDomainQuery,
 } from '../../shared/domainSearch'
 
@@ -42,5 +45,32 @@ describe('domain search utilities', () => {
       exactDomain: null,
       results: [],
     })
+  })
+
+  it('builds canonical route paths for keyword and exact searches', () => {
+    expect(buildCanonicalSearchPath('hello')).toBe('/q/hello')
+    expect(buildCanonicalSearchPath('hello.io')).toBe('/d/hello.io')
+    expect(buildCanonicalSearchPath('')).toBe('/')
+  })
+
+  it('reads the active query from route params before legacy query strings', () => {
+    expect(
+      readDomainRouteQuery({
+        label: 'atlas',
+        q: 'legacy',
+      }),
+    ).toBe('atlas')
+
+    expect(
+      readDomainRouteQuery({
+        domain: 'atlas.com',
+      }),
+    ).toBe('atlas.com')
+  })
+
+  it('classifies normalized queries by keyword or exact domain', () => {
+    expect(getDomainQueryKind('atlas')).toBe('keyword')
+    expect(getDomainQueryKind('atlas.com')).toBe('exact')
+    expect(getDomainQueryKind('')).toBeNull()
   })
 })

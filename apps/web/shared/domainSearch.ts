@@ -3,6 +3,7 @@ export const SAMPLE_DOMAIN_QUERIES = ['atlas', 'rally', 'northstar', 'craft', 'b
 export const MAX_SEARCH_RESULTS = POPULAR_TLDS.length
 
 export type DomainStatus = 'available' | 'taken' | 'unknown'
+export type DomainQueryKind = 'keyword' | 'exact'
 export type DomainReason =
   | 'rdap-found'
   | 'rdap-missing'
@@ -20,6 +21,7 @@ export interface DomainResult extends DomainCandidate {
   status: DomainStatus
   reason: DomainReason
   rdapUrl: string
+  purchaseUrl: string | null
   registrar: string | null
   expiresAt: string | null
 }
@@ -30,6 +32,10 @@ export interface DomainSearchResponse {
   baseLabel: string
   exactDomain: string | null
   results: DomainResult[]
+}
+
+function encodeRouteSegment(value: string) {
+  return encodeURIComponent(value).replaceAll('%2F', '/')
 }
 
 function sanitizeLabel(value: string): string {
@@ -80,6 +86,40 @@ export function splitDomainQuery(value: string) {
     exactDomain: baseLabel && exactTld ? `${baseLabel}.${exactTld}` : null,
     exactTld: exactTld || null,
   }
+}
+
+export function getDomainQueryKind(value: string): DomainQueryKind | null {
+  const { normalizedQuery, exactDomain } = splitDomainQuery(value)
+  if (!normalizedQuery) return null
+  return exactDomain ? 'exact' : 'keyword'
+}
+
+export function buildCanonicalSearchPath(value: string) {
+  const { normalizedQuery, baseLabel, exactDomain } = splitDomainQuery(value)
+
+  if (!normalizedQuery) return '/'
+  if (exactDomain) return `/d/${encodeRouteSegment(exactDomain)}`
+
+  return `/q/${encodeRouteSegment(baseLabel)}`
+}
+
+export function readDomainRouteQuery(input: {
+  label?: string | string[] | null
+  domain?: string | string[] | null
+  q?: string | Array<string | null> | null
+}) {
+  const routeLabel = Array.isArray(input.label) ? input.label[0] : input.label
+  if (typeof routeLabel === 'string' && routeLabel.length > 0) {
+    return normalizeDomainQuery(routeLabel)
+  }
+
+  const routeDomain = Array.isArray(input.domain) ? input.domain[0] : input.domain
+  if (typeof routeDomain === 'string' && routeDomain.length > 0) {
+    return normalizeDomainQuery(routeDomain)
+  }
+
+  const queryValue = Array.isArray(input.q) ? input.q[0] : input.q
+  return typeof queryValue === 'string' ? normalizeDomainQuery(queryValue) : ''
 }
 
 export function buildCandidateDomains(

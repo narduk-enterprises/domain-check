@@ -93,6 +93,7 @@ type LoginInput = {
   email: string
   password: string
   captchaToken?: string
+  next?: string | null
 }
 
 type PasswordResetRequest = {
@@ -676,6 +677,7 @@ export async function loginUser(event: H3Event, body: LoginInput): Promise<AuthM
 
 async function loginWithLocalAuth(event: H3Event, body: LoginInput): Promise<AuthMutationResult> {
   const log = useLogger(event).child('AppAuth')
+  const config = getAuthConfig(event)
   const db = useDatabase(event)
   const normalizedEmail = normalizeEmail(body.email)
   const user = await db.select().from(users).where(eq(users.email, normalizedEmail)).get()
@@ -708,10 +710,12 @@ async function loginWithLocalAuth(event: H3Event, body: LoginInput): Promise<Aut
   return {
     user: sessionUser,
     nextStep: 'signed_in',
+    redirectTo: sanitizeNextPath(body.next, config.redirectPath),
   }
 }
 
 async function loginWithSupabase(event: H3Event, body: LoginInput): Promise<AuthMutationResult> {
+  const config = getAuthConfig(event)
   const client = createSupabaseUserClient(event)
   const { data, error } = await client.signInWithPassword({
     email: normalizeEmail(body.email),
@@ -747,6 +751,7 @@ async function loginWithSupabase(event: H3Event, body: LoginInput): Promise<Auth
   return {
     user: sessionUser,
     nextStep: 'signed_in',
+    redirectTo: sanitizeNextPath(body.next, config.redirectPath),
   }
 }
 
@@ -766,6 +771,7 @@ async function registerWithLocalAuth(
   body: RegisterInput,
 ): Promise<AuthMutationResult> {
   const log = useLogger(event).child('AppAuth')
+  const config = getAuthConfig(event)
   const db = useDatabase(event)
   const normalizedEmail = normalizeEmail(body.email)
   const existingUser = await db.select().from(users).where(eq(users.email, normalizedEmail)).get()
@@ -806,6 +812,7 @@ async function registerWithLocalAuth(
   return {
     user: sessionUser,
     nextStep: 'signed_in',
+    redirectTo: sanitizeNextPath(body.next, config.redirectPath),
   }
 }
 

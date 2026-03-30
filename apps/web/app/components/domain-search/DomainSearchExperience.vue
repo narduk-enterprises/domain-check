@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { MAX_SEARCH_RESULTS } from '#shared/domainSearch'
+import { MAX_SEARCH_RESULTS, getDomainQueryKind } from '#shared/domainSearch'
 
-const search = await useDomainSearch()
+const search = useDomainSearch()
 const { commitQuery, errorMessage, hasQuery, pending, query, rawQuery, results } = search
+const savedSearches = useSavedSearches()
+const { capture } = usePosthog()
+const route = useRoute()
 
 const featuredResult = computed(() => {
   if (!hasQuery.value) return null
@@ -13,6 +16,36 @@ const featuredResult = computed(() => {
     null
   )
 })
+const isCurrentQuerySaved = computed(() => savedSearches.isSaved(query.value))
+const isCurrentQuerySaving = computed(() => savedSearches.savingQuery.value === query.value)
+
+async function saveCurrentQuery() {
+  if (!query.value || isCurrentQuerySaved.value) return
+
+  try {
+    await savedSearches.saveQuery(query.value)
+  } catch {
+    // The composable exposes a user-facing message; the page only needs to avoid throwing.
+  }
+}
+
+function trackRegistrarClick(domain: string, placement: 'featured' | 'result') {
+  capture('domain_registrar_click', {
+    domain,
+    placement,
+    query: query.value,
+    queryKind: getDomainQueryKind(query.value),
+  })
+}
+
+const loginHref = computed(() =>
+  hasQuery.value
+    ? {
+        path: '/login',
+        query: { next: route.fullPath },
+      }
+    : { path: '/login' },
+)
 </script>
 
 <template>
@@ -47,7 +80,21 @@ const featuredResult = computed(() => {
           </div>
         </div>
 
-        <UBadge color="neutral" variant="soft" class="rounded-full">RDAP powered</UBadge>
+        <div class="flex items-center gap-2">
+          <UBadge color="neutral" variant="soft" class="rounded-full">RDAP powered</UBadge>
+          <UButton
+            v-if="savedSearches.isAuthenticated.value"
+            to="/dashboard"
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-bookmark"
+          >
+            Saved
+          </UButton>
+          <UButton v-else :to="loginHref" color="neutral" variant="ghost" icon="i-lucide-log-in">
+            Sign in
+          </UButton>
+        </div>
       </div>
 
       <div class="flex flex-1 items-center py-8 sm:py-12">
@@ -76,19 +123,56 @@ const featuredResult = computed(() => {
               <div class="space-y-6">
                 <DomainSearchInput v-model="rawQuery" @submit="commitQuery" />
 
-                <div class="flex flex-wrap items-center gap-3 text-sm text-muted">
-                  <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-clock-3" class="size-4 text-primary" />
-                    <span>Debounced live lookups at the edge</span>
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                  <div class="flex flex-wrap items-center gap-3 text-sm text-muted">
+                    <div class="flex items-center gap-2">
+                      <UIcon name="i-lucide-clock-3" class="size-4 text-primary" />
+                      <span>Debounced live lookups at the edge</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <UIcon name="i-lucide-link" class="size-4 text-primary" />
+                      <span>Canonical `/q` and `/d` routes</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <UIcon name="i-lucide-layers-3" class="size-4 text-primary" />
+                      <span>{{ MAX_SEARCH_RESULTS }} common endings per pass</span>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-link" class="size-4 text-primary" />
-                    <span>Shareable `?q=` URLs</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-layers-3" class="size-4 text-primary" />
-                    <span>{{ MAX_SEARCH_RESULTS }} common endings per pass</span>
-                  </div>
+
+                  <DomainSearchSaveButton
+                    :has-query="hasQuery"
+                    :is-authenticated="savedSearches.isAuthenticated.value"
+                    :is-saved="isCurrentQuerySaved"
+                    :is-saving="isCurrentQuerySaving"
+                    @save="saveCurrentQuery"
+                  />
+                </div>
+
+                <UAlert
+                  v-if="savedSearches.mutationError.value"
+                  color="error"
+                  variant="subtle"
+                  title="Saved search unavailable"
+                  :description="savedSearches.mutationError.value"
+                />
+
+                <div
+                  v-if="savedSearches.isAuthenticated.value && hasQuery"
+                  class="flex flex-wrap items-center gap-2 text-sm text-muted"
+                >
+                  <UIcon name="i-lucide-bookmark-check" class="size-4 text-primary" />
+                  <span v-if="isCurrentQuerySaved">This query is already in your dashboard.</span>
+                  <span v-else
+                    >Signed-in searches can be saved and reopened from your dashboard.</span
+                  >
+                </div>
+
+                <div
+                  v-else-if="hasQuery"
+                  class="flex flex-wrap items-center gap-2 text-sm text-muted"
+                >
+                  <UIcon name="i-lucide-log-in" class="size-4 text-primary" />
+                  <span>Sign in once to keep this query in your saved-search dashboard.</span>
                 </div>
               </div>
             </UCard>
@@ -123,14 +207,28 @@ const featuredResult = computed(() => {
                     </p>
                   </div>
 
-                  <UButton
-                    :to="featuredResult.rdapUrl"
-                    external
-                    color="success"
-                    icon="i-lucide-arrow-up-right"
-                  >
-                    Inspect
-                  </UButton>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <UButton
+                      v-if="featuredResult.purchaseUrl"
+                      :to="featuredResult.purchaseUrl"
+                      external
+                      color="success"
+                      icon="i-lucide-shopping-cart"
+                      @click="trackRegistrarClick(featuredResult.domain, 'featured')"
+                    >
+                      Register
+                    </UButton>
+
+                    <UButton
+                      :to="featuredResult.rdapUrl"
+                      external
+                      color="success"
+                      variant="outline"
+                      icon="i-lucide-arrow-up-right"
+                    >
+                      Inspect
+                    </UButton>
+                  </div>
                 </div>
               </div>
 
@@ -140,6 +238,7 @@ const featuredResult = computed(() => {
                 :is-refreshing="pending"
                 :results="results"
                 :error-message="errorMessage"
+                @registrar-click="trackRegistrarClick"
               />
             </div>
           </ClientOnly>

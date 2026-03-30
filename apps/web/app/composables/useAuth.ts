@@ -6,7 +6,12 @@ export function useAuth() {
 
   const isAuthenticated = computed(() => loggedIn.value)
 
-  async function login(payload: { email: string; password: string; captchaToken?: string }) {
+  async function login(payload: {
+    email: string
+    password: string
+    captchaToken?: string
+    next?: string
+  }) {
     const result = (await api.login(payload)) as AuthMutationResult
     if (result.user) {
       await fetchSession()
