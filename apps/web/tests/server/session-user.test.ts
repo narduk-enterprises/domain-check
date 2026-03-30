@@ -8,9 +8,8 @@ vi.mock('#server/utils/app-auth', () => ({
   getCurrentSupabaseContext: mockGetCurrentSupabaseContext,
 }))
 
-const { useRefreshedSessionUser, useRefreshedSessionUserResponse } = await import(
-  '../../server/utils/session-user'
-)
+const { useRefreshedSessionUser, useRefreshedSessionUserResponse } =
+  await import('../../server/utils/session-user')
 
 describe('session-user utils', () => {
   beforeEach(() => {
