@@ -66,7 +66,9 @@ export async function searchDomains(event: H3Event, query: string): Promise<Doma
   }
 
   const resolver = createDomainLookupResolver(event)
-  const resolutions = await Promise.all(candidates.map((candidate) => resolver.lookupCandidate(candidate)))
+  const resolutions = await Promise.all(
+    candidates.map((candidate) => resolver.lookupCandidate(candidate)),
+  )
   const results = candidates.map((candidate, index) => {
     const resolution = resolutions[index]
     if (!resolution) {

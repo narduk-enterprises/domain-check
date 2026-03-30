@@ -265,7 +265,9 @@ function buildRegistryRdapUrl(baseUrl: string, domain: string) {
   return new URL(`domain/${domain}`, normalizeBaseUrl(baseUrl)).toString()
 }
 
-export function parseIanaRdapBootstrap(response: IanaRdapBootstrapResponse): Record<string, string> {
+export function parseIanaRdapBootstrap(
+  response: IanaRdapBootstrapResponse,
+): Record<string, string> {
   const endpoints: Record<string, string> = { ...STATIC_AUTHORITATIVE_RDAP_ENDPOINTS }
 
   for (const entry of response.services ?? []) {
@@ -288,8 +290,9 @@ function hasKvBinding(event: H3Event) {
 
 function ensureEventContext(event: H3Event) {
   if (!event.context) {
-    ;(event as H3Event & { context: NonNullable<H3Event['context']> }).context =
-      {} as NonNullable<H3Event['context']>
+    ;(event as H3Event & { context: NonNullable<H3Event['context']> }).context = {} as NonNullable<
+      H3Event['context']
+    >
   }
 
   return event.context
@@ -351,7 +354,9 @@ async function getAuthoritativeRdapEndpoints(
     )
 
     const payload = request.response.ok ? await request.json() : null
-    const endpoints = payload ? parseIanaRdapBootstrap(payload) : { ...STATIC_AUTHORITATIVE_RDAP_ENDPOINTS }
+    const endpoints = payload
+      ? parseIanaRdapBootstrap(payload)
+      : { ...STATIC_AUTHORITATIVE_RDAP_ENDPOINTS }
 
     if (hasKvBinding(event)) {
       await kvSet(
@@ -367,15 +372,20 @@ async function getAuthoritativeRdapEndpoints(
 
     return endpoints
   } catch (error) {
-    useLogger(event).child('DomainLookup').warn('Failed to refresh IANA RDAP bootstrap', {
-      error: error instanceof Error ? error.message : String(error),
-    })
+    useLogger(event)
+      .child('DomainLookup')
+      .warn('Failed to refresh IANA RDAP bootstrap', {
+        error: error instanceof Error ? error.message : String(error),
+      })
 
     return { ...STATIC_AUTHORITATIVE_RDAP_ENDPOINTS }
   }
 }
 
-function classifyDomainrStatus(summary: string | null | undefined, status: string | null | undefined) {
+function classifyDomainrStatus(
+  summary: string | null | undefined,
+  status: string | null | undefined,
+) {
   const normalizedSummary = `${summary ?? ''}`.trim().toLowerCase()
   const normalizedStatus = `${status ?? ''}`.trim().toLowerCase()
   const combined = `${normalizedSummary} ${normalizedStatus}`.trim()
@@ -422,17 +432,15 @@ function logShadowDelta(
   primary: DomainLookupDiagnostics,
   shadow: DomainLookupDiagnostics,
 ) {
-  useLogger(event)
-    .child('DomainLookup')
-    .warn('Shadow provider delta detected', {
-      domain: candidate.domain,
-      primaryProvider: primary.provider,
-      primaryOutcome: primary.outcome,
-      primaryReason: primary.reason,
-      shadowProvider: shadow.provider,
-      shadowOutcome: shadow.outcome,
-      shadowReason: shadow.reason,
-    })
+  useLogger(event).child('DomainLookup').warn('Shadow provider delta detected', {
+    domain: candidate.domain,
+    primaryProvider: primary.provider,
+    primaryOutcome: primary.outcome,
+    primaryReason: primary.reason,
+    shadowProvider: shadow.provider,
+    shadowOutcome: shadow.outcome,
+    shadowReason: shadow.reason,
+  })
 }
 
 function buildUnknownAttempt(
@@ -581,7 +589,9 @@ async function resolveInspectionUrl(
 ) {
   const endpoints = await getAuthoritativeEndpoints()
   const baseUrl = endpoints[candidate.tld]
-  return baseUrl ? buildRegistryRdapUrl(baseUrl, candidate.domain) : rdapUrlForDomain(candidate.domain)
+  return baseUrl
+    ? buildRegistryRdapUrl(baseUrl, candidate.domain)
+    : rdapUrlForDomain(candidate.domain)
 }
 
 async function lookupViaAuthoritativeRdap(
@@ -638,12 +648,16 @@ async function lookupViaDomainr(
   url.searchParams.set('domain', candidate.domain)
 
   try {
-    const request = await fetchJsonWithTimeout<DomainrStatusResponse>(url.toString(), config.timeoutMs, {
-      headers: {
-        accept: 'application/json',
+    const request = await fetchJsonWithTimeout<DomainrStatusResponse>(
+      url.toString(),
+      config.timeoutMs,
+      {
+        headers: {
+          accept: 'application/json',
+        },
+        redirect: 'follow',
       },
-      redirect: 'follow',
-    })
+    )
 
     if (request.response.status === 429) {
       return buildUnknownAttempt(phase, 'domainr', candidate, {
@@ -668,7 +682,8 @@ async function lookupViaDomainr(
     }
 
     const payload = await request.json()
-    const record = payload?.status?.find((entry) => entry.domain === candidate.domain) ?? payload?.status?.[0]
+    const record =
+      payload?.status?.find((entry) => entry.domain === candidate.domain) ?? payload?.status?.[0]
     const status = classifyDomainrStatus(record?.summary, record?.status)
     const inspectionUrl = await resolveInspectionUrl(candidate, getAuthoritativeEndpoints)
 
