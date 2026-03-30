@@ -1,0 +1,5 @@
+/* Custom theme tokens */
+@theme {
+  --primary-gradient: linear-gradient(to right, theme(colors.blue.500), theme(colors.blue.700));
+  --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.2);
+}

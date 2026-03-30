@@ -1,0 +1,3 @@
+setup:
+  project: domain-check
+  config: dev
