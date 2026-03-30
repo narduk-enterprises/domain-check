@@ -74,8 +74,7 @@ export function useDomainSearch() {
   onBeforeUnmount(() => {
     clearScheduledLookup()
   })
-
-  const { data, error, status, refresh } = useAsyncData<DomainSearchResponse>(
+  const { data, error, status, refresh, clear } = useAsyncData<DomainSearchResponse>(
     'domain-search',
     async (_nuxtApp, { signal }) => {
       const query = settledQuery.value
@@ -88,11 +87,18 @@ export function useDomainSearch() {
     },
     {
       watch: [settledQuery],
-      default: () => emptyDomainSearchResponse(initialQuery),
+      default: () => emptyDomainSearchResponse(settledQuery.value || initialQuery),
       deep: false,
       dedupe: 'cancel',
     },
   )
+
+  watch(settledQuery, (value, previousValue) => {
+    if (!import.meta.client || value === previousValue) return
+
+    clearNuxtData('domain-search')
+    clear()
+  })
 
   watch(settledQuery, (value, previousValue) => {
     if (!import.meta.client || !value || value === previousValue) return

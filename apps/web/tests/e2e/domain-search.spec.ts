@@ -33,6 +33,21 @@ test.describe('domain search routes', () => {
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/)
   })
 
+  test('changing the search updates the visible result set', async ({ page }) => {
+    await page.goto('/q/atlas')
+    await waitForHydration(page)
+
+    await expect(page).toHaveURL(/\/q\/atlas$/)
+    await expect(page.getByText('atlas.com').first()).toBeVisible()
+
+    await page.getByRole('textbox').fill('rally')
+    await page.getByRole('button', { name: /check/i }).click()
+
+    await expect(page).toHaveURL(/\/q\/rally$/)
+    await expect(page.getByText('rally.com').first()).toBeVisible()
+    await expect(page.getByText('atlas.com').first()).not.toBeVisible()
+  })
+
   test('saving a search returns through auth and lands in dashboard state', async ({ page }) => {
     const email = createUniqueEmail('saved-search')
 
