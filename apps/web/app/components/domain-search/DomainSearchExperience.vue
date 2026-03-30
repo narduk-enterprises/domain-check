@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MAX_SEARCH_RESULTS } from '../../../shared/domainSearch'
+import { MAX_SEARCH_RESULTS } from '#shared/domainSearch'
 
 const search = await useDomainSearch()
 const { commitQuery, errorMessage, hasQuery, pending, query, rawQuery, results } = search

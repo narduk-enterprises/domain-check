@@ -1,5 +1,5 @@
-import type { DomainSearchResponse } from '../../shared/domainSearch'
-import { emptyDomainSearchResponse, normalizeDomainQuery } from '../../shared/domainSearch'
+import type { DomainSearchResponse } from '#shared/domainSearch'
+import { emptyDomainSearchResponse, normalizeDomainQuery } from '#shared/domainSearch'
 
 function readQueryValue(value: unknown) {
   if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : ''

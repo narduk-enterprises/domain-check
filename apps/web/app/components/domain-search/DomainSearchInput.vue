@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SAMPLE_DOMAIN_QUERIES } from '../../../shared/domainSearch'
+import { SAMPLE_DOMAIN_QUERIES } from '#shared/domainSearch'
 
 const model = defineModel<string>({ required: true })
 

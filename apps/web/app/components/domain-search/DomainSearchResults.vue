@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DomainResult } from '../../../shared/domainSearch'
+import type { DomainResult } from '#shared/domainSearch'
 
 const props = defineProps<{
   query: string

@@ -3,13 +3,13 @@ import type {
   DomainReason,
   DomainResult,
   DomainSearchResponse,
-} from '../../shared/domainSearch'
+} from '#shared/domainSearch'
 import {
   buildCandidateDomains,
   emptyDomainSearchResponse,
   normalizeDomainQuery,
   rdapUrlForDomain,
-} from '../../shared/domainSearch'
+} from '#shared/domainSearch'
 
 const RDAP_ACCEPT_HEADER = 'application/rdap+json, application/json'
 const RDAP_TIMEOUT_MS = 3000
