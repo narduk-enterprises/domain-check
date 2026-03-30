@@ -85,6 +85,7 @@ test.describe('domain search routes', () => {
     await page.goto('/dashboard')
     await waitForHydration(page)
     await expect(page.getByTestId('saved-search-item')).toContainText('atlas')
+    await expect(page.getByTestId('saved-search-preview')).toContainText('atlas.com')
 
     await page.getByTestId('saved-search-remove').click()
     await expect(page.getByTestId('saved-searches-empty')).toBeVisible()

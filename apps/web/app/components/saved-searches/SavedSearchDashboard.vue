@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DomainResult } from '#shared/domainSearch'
 import type { SavedSearchRecord } from '#shared/savedSearches'
 import { buildCanonicalSearchPath, getDomainQueryKind } from '#shared/domainSearch'
 
@@ -13,6 +14,8 @@ const emit = defineEmits<{
   remove: [savedSearch: SavedSearchRecord]
 }>()
 
+const livePreviews = useSavedSearchResultPreviews(computed(() => props.savedSearches))
+
 function isRemoving(id: string) {
   return props.removingIds.includes(id)
 }
@@ -23,6 +26,85 @@ function searchHref(query: string) {
 
 function queryKindLabel(query: string) {
   return getDomainQueryKind(query) === 'exact' ? 'Exact domain' : 'Keyword'
+}
+
+function statusLabel(status: DomainResult['status']) {
+  switch (status) {
+    case 'available':
+      return 'Available'
+    case 'taken':
+      return 'Taken'
+    default:
+      return 'Unknown'
+  }
+}
+
+function statusColor(status: DomainResult['status']) {
+  switch (status) {
+    case 'available':
+      return 'success'
+    case 'taken':
+      return 'neutral'
+    default:
+      return 'warning'
+  }
+}
+
+function previewFor(query: string) {
+  return livePreviews.previews.value[query] ?? null
+}
+
+function previewHeadline(query: string) {
+  const preview = previewFor(query)
+  if (!preview)
+    return livePreviews.isLoading.value ? 'Refreshing live results' : 'Live preview unavailable'
+
+  if (preview.exactMatch?.status === 'taken') return 'Already taken'
+  if (preview.exactMatch?.status === 'available') return 'Exact match open'
+  if (preview.availableCount > 0) return `${preview.availableCount} open now`
+  if (preview.exactMatch?.status === 'unknown') return 'Exact match still resolving'
+  return 'No live status yet'
+}
+
+function previewDescription(query: string) {
+  const preview = previewFor(query)
+  if (!preview) return 'Open the search to rerun the live checks.'
+
+  if (preview.exactMatch?.status === 'taken') {
+    return preview.bestAvailable
+      ? `${preview.normalizedQuery} is already taken. Best open option: ${preview.bestAvailable.domain}.`
+      : `${preview.normalizedQuery} is already taken.`
+  }
+
+  if (preview.exactMatch?.status === 'available') {
+    return `${preview.exactMatch.domain} is still available right now.`
+  }
+
+  if (preview.bestAvailable) {
+    return `Best open option: ${preview.bestAvailable.domain}.`
+  }
+
+  return 'The live registries did not return a clean answer for this query.'
+}
+
+function previewTone(query: string): DomainResult['status'] {
+  const preview = previewFor(query)
+  if (!preview) return 'unknown'
+  if (preview.exactMatch?.status) return preview.exactMatch.status
+  if (preview.availableCount > 0) return 'available'
+  return 'unknown'
+}
+
+function previewStatusColor(query: string) {
+  return statusColor(previewTone(query))
+}
+
+function previewResults(query: string) {
+  return previewFor(query)?.results ?? []
+}
+
+function hasPreviewResults(query: string) {
+  return previewResults(query).length > 0
 }
 </script>
 
@@ -86,6 +168,36 @@ function queryKindLabel(query: string) {
                     minute="2-digit"
                   />
                 </span>
+              </div>
+
+              <div class="space-y-3" data-testid="saved-search-preview">
+                <div class="flex flex-wrap items-center gap-2">
+                  <UBadge
+                    :color="previewStatusColor(savedSearch.normalizedQuery)"
+                    variant="soft"
+                    class="rounded-full"
+                  >
+                    {{ previewHeadline(savedSearch.normalizedQuery) }}
+                  </UBadge>
+                  <span class="text-sm text-muted">
+                    {{ previewDescription(savedSearch.normalizedQuery) }}
+                  </span>
+                </div>
+
+                <div
+                  v-if="hasPreviewResults(savedSearch.normalizedQuery)"
+                  class="flex flex-wrap gap-2"
+                >
+                  <UBadge
+                    v-for="result in previewResults(savedSearch.normalizedQuery)"
+                    :key="result.domain"
+                    :color="statusColor(result.status)"
+                    variant="outline"
+                    class="rounded-full"
+                  >
+                    {{ result.domain }} · {{ statusLabel(result.status) }}
+                  </UBadge>
+                </div>
               </div>
             </div>
 
