@@ -17,3 +17,4 @@ jobs:
     secrets:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
       GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+      FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}

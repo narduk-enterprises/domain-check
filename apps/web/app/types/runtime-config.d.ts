@@ -1,23 +1,19 @@
 declare module 'nuxt/schema' {
   interface RuntimeConfig {
+    appBackendPreset: 'default' | 'managed-supabase'
     authBackend: 'local' | 'supabase'
     authAuthorityUrl: string
     authAnonKey: string
     authServiceRoleKey: string
     authStorageKey: string
-    domainPurchaseUrlTemplate: string
-    domainLookupPrimaryProvider: string
-    domainLookupFallbackProvider: string
-    domainLookupShadowProviders: string[]
-    domainLookupTimeoutMs: number
-    domainLookupBootstrapTtlSeconds: number
-    domainLookupAuthoritativeRdapEnabled: boolean
-    domainrClientId: string
-    whoisxmlApiKey: string
+    supabaseUrl: string
+    supabasePublishableKey: string
+    supabaseServiceRoleKey: string
     turnstileSecretKey: string
   }
 
   interface PublicRuntimeConfig {
+    appBackendPreset: 'default' | 'managed-supabase'
     authBackend: 'local' | 'supabase'
     authAuthorityUrl: string
     authLoginPath: string
@@ -31,6 +27,8 @@ declare module 'nuxt/schema' {
     authPublicSignup: boolean
     authRequireMfa: boolean
     authTurnstileSiteKey: string
+    supabaseUrl: string
+    supabasePublishableKey: string
   }
 }
 
