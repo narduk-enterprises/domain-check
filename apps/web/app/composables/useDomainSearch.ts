@@ -24,6 +24,54 @@ export function useDomainSearch() {
   const settledQuery = shallowRef(initialQuery)
   const normalizedQuery = computed(() => normalizeDomainQuery(rawQuery.value))
 
+  // --- Scan mode ---
+  const mode = ref<'search' | 'scan'>('search')
+  const scanResults = ref<Record<string, DomainSearchResponse | null>>({})
+  const isScanning = ref(false)
+
+  const scanQueries = computed(() => {
+    if (mode.value !== 'scan') return []
+    return rawQuery.value
+      .split(/[\n,]+/)
+      .map((q) => normalizeDomainQuery(q))
+      .filter((q) => q.length > 0)
+  })
+
+  async function runScan() {
+    const queries = scanQueries.value
+    if (queries.length === 0) return
+
+    isScanning.value = true
+    scanResults.value = {}
+
+    try {
+      const responses = await Promise.allSettled(
+        queries.map((q) =>
+          $fetch<DomainSearchResponse>('/api/domain/search' as string, {
+            query: { q },
+          }),
+        ),
+      )
+
+      const results: Record<string, DomainSearchResponse | null> = {}
+      for (const [index, response] of responses.entries()) {
+        const query = queries[index] ?? ''
+        if (!query) continue
+        results[query] =
+          response.status === 'fulfilled' ? response.value : null
+      }
+
+      scanResults.value = results
+
+      capture('domain_scan_submitted', {
+        queryCount: queries.length,
+      })
+    } finally {
+      isScanning.value = false
+    }
+  }
+  // --- End scan mode ---
+
   let debounceHandle: ReturnType<typeof globalThis.setTimeout> | undefined
 
   const clearScheduledLookup = () => {
@@ -48,6 +96,7 @@ export function useDomainSearch() {
   watch(
     normalizedQuery,
     (value) => {
+      if (mode.value === 'scan') return
       scheduleLookup(value, value ? 140 : 0)
     },
     { immediate: true },
@@ -61,20 +110,33 @@ export function useDomainSearch() {
     settledQuery.value = nextQuery
   })
 
-  watch(settledQuery, async (value) => {
+  watch(settledQuery, (value) => {
     if (!import.meta.client) return
+    if (mode.value === 'scan') return
 
     const targetPath = buildCanonicalSearchPath(value)
     const hasLegacyQuery = typeof route.query.q === 'string' || Array.isArray(route.query.q)
     if (route.path === targetPath && !hasLegacyQuery) return
 
-    await router.replace(targetPath)
+    // Determine if this is the same page family (e.g. /q/a → /q/b)
+    // or a cross-family transition (e.g. / → /q/a, /q/a → /d/b)
+    const currentPrefix = route.path.split('/')[1] ?? ''
+    const targetPrefix = targetPath.split('/')[1] ?? ''
+    const isSameFamily = currentPrefix === targetPrefix && currentPrefix !== ''
+
+    if (isSameFamily) {
+      // Intra-page transition: Nuxt reuses the same page component
+      router.replace(targetPath)
+    } else {
+      // Cross-page transition: use replaceState to avoid page swap & focus loss
+      globalThis.history?.replaceState(globalThis.history.state, '', targetPath)
+    }
   })
 
   onBeforeUnmount(() => {
     clearScheduledLookup()
   })
-  const { data, error, status, refresh, clear } = useAsyncData<DomainSearchResponse>(
+  const { data, error, status, refresh, clear: _clear } = useAsyncData<DomainSearchResponse>(
     'domain-search',
     async (_nuxtApp, { signal }) => {
       const query = settledQuery.value
@@ -93,11 +155,11 @@ export function useDomainSearch() {
     },
   )
 
+  // Force a client-side refetch when settledQuery changes.
+  // useAsyncData's watch option may not trigger after SSR hydration.
   watch(settledQuery, (value, previousValue) => {
     if (!import.meta.client || value === previousValue) return
-
-    clearNuxtData('domain-search')
-    clear()
+    refresh()
   })
 
   watch(settledQuery, (value, previousValue) => {
@@ -120,6 +182,10 @@ export function useDomainSearch() {
   )
 
   const commitQuery = () => {
+    if (mode.value === 'scan') {
+      runScan()
+      return
+    }
     clearScheduledLookup()
     settledQuery.value = normalizedQuery.value
   }
@@ -127,6 +193,12 @@ export function useDomainSearch() {
   const setQuery = (value: string) => {
     rawQuery.value = value
     commitQuery()
+  }
+
+  const clearQuery = () => {
+    rawQuery.value = ''
+    settledQuery.value = ''
+    scanResults.value = {}
   }
 
   return {
@@ -142,6 +214,13 @@ export function useDomainSearch() {
     settledQuery,
     setQuery,
     commitQuery,
+    clearQuery,
     status,
+    // Scan mode
+    mode,
+    scanQueries,
+    scanResults,
+    isScanning,
+    runScan,
   }
 }

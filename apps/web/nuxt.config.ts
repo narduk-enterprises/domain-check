@@ -82,6 +82,10 @@ export default defineNuxtConfig({
     port: Number.isFinite(localNuxtPort) ? localNuxtPort : 3000,
   },
 
+  colorMode: {
+    preference: 'dark',
+  },
+
   runtimeConfig: {
     appBackendPreset,
     authBackend,

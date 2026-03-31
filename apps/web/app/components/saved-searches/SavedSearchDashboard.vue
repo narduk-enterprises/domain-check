@@ -25,18 +25,7 @@ function searchHref(query: string) {
 }
 
 function queryKindLabel(query: string) {
-  return getDomainQueryKind(query) === 'exact' ? 'Exact domain' : 'Keyword'
-}
-
-function statusLabel(status: DomainResult['status']) {
-  switch (status) {
-    case 'available':
-      return 'Available'
-    case 'taken':
-      return 'Taken'
-    default:
-      return 'Unknown'
-  }
+  return getDomainQueryKind(query) === 'exact' ? 'Exact' : 'Keyword'
 }
 
 function statusColor(status: DomainResult['status']) {
@@ -57,34 +46,13 @@ function previewFor(query: string) {
 function previewHeadline(query: string) {
   const preview = previewFor(query)
   if (!preview)
-    return livePreviews.isLoading.value ? 'Refreshing live results' : 'Live preview unavailable'
+    return livePreviews.isLoading.value ? 'Refreshing' : 'No preview'
 
-  if (preview.exactMatch?.status === 'taken') return 'Already taken'
-  if (preview.exactMatch?.status === 'available') return 'Exact match open'
-  if (preview.availableCount > 0) return `${preview.availableCount} open now`
-  if (preview.exactMatch?.status === 'unknown') return 'Exact match still resolving'
-  return 'No live status yet'
-}
-
-function previewDescription(query: string) {
-  const preview = previewFor(query)
-  if (!preview) return 'Open the search to rerun the live checks.'
-
-  if (preview.exactMatch?.status === 'taken') {
-    return preview.bestAvailable
-      ? `${preview.normalizedQuery} is already taken. Best open option: ${preview.bestAvailable.domain}.`
-      : `${preview.normalizedQuery} is already taken.`
-  }
-
-  if (preview.exactMatch?.status === 'available') {
-    return `${preview.exactMatch.domain} is still available right now.`
-  }
-
-  if (preview.bestAvailable) {
-    return `Best open option: ${preview.bestAvailable.domain}.`
-  }
-
-  return 'The live registries did not return a clean answer for this query.'
+  if (preview.exactMatch?.status === 'taken') return 'Taken'
+  if (preview.exactMatch?.status === 'available') return 'Open'
+  if (preview.availableCount > 0) return `${preview.availableCount} open`
+  if (preview.exactMatch?.status === 'unknown') return 'Resolving'
+  return 'No status'
 }
 
 function previewTone(query: string): DomainResult['status'] {
@@ -95,135 +63,132 @@ function previewTone(query: string): DomainResult['status'] {
   return 'unknown'
 }
 
-function previewStatusColor(query: string) {
-  return statusColor(previewTone(query))
-}
-
 function previewResults(query: string) {
   return previewFor(query)?.results ?? []
 }
 
-function hasPreviewResults(query: string) {
-  return previewResults(query).length > 0
+function previewColor(query: string) {
+  return statusColor(previewTone(query))
 }
 </script>
 
 <template>
-  <div class="space-y-4">
-    <UAlert
+  <div class="space-y-3">
+    <!-- Mutation error -->
+    <div
       v-if="mutationError"
-      color="error"
-      variant="subtle"
-      title="Saved searches are unavailable"
-      :description="mutationError"
-    />
+      class="flex items-center gap-2 rounded-md border border-error/25 bg-error/5 px-3 py-2 text-xs text-error"
+    >
+      <UIcon name="i-lucide-alert-circle" class="size-3.5 shrink-0" />
+      {{ mutationError }}
+    </div>
 
-    <UCard v-if="isLoading" class="border-default bg-default/88 shadow-card">
-      <p class="text-sm text-muted">Loading your saved searches.</p>
-    </UCard>
+    <!-- Loading -->
+    <div
+      v-if="isLoading"
+      class="flex items-center gap-2 rounded-lg border border-default bg-muted/50 px-4 py-4 text-sm text-muted"
+    >
+      <UIcon name="i-lucide-loader-2" class="size-4 animate-spin" />
+      Loading saved searches…
+    </div>
 
-    <UCard
+    <!-- Empty -->
+    <div
       v-else-if="savedSearches.length === 0"
-      class="border-default bg-default/88 shadow-card"
+      class="rounded-lg border border-default bg-muted/50 px-4 py-8 text-center"
       data-testid="saved-searches-empty"
     >
-      <div class="space-y-3">
-        <p class="font-display text-2xl font-semibold">Nothing saved yet.</p>
-        <p class="max-w-2xl text-sm leading-6 text-muted">
-          Save a query from the public search flow and it will show up here as a quick-return list.
-        </p>
-        <UButton to="/" color="primary" variant="soft" icon="i-lucide-arrow-up-right">
-          Open domain search
-        </UButton>
-      </div>
-    </UCard>
+      <p class="text-sm text-muted">Nothing saved yet.</p>
+      <p class="mt-1 text-xs text-dimmed">
+        Save a query from search and it will appear here.
+      </p>
+      <UButton to="/" color="primary" variant="soft" size="sm" class="mt-3" icon="i-lucide-search">
+        Open search
+      </UButton>
+    </div>
 
-    <ul v-else class="grid gap-3">
-      <li
+    <!-- Populated list -->
+    <div v-else class="overflow-hidden rounded-lg border border-default">
+      <div
         v-for="savedSearch in savedSearches"
         :key="savedSearch.id"
+        class="flex items-center gap-4 border-b border-default px-3 py-3 last:border-b-0 hover:bg-accented"
         data-testid="saved-search-item"
       >
-        <UCard class="border-default bg-default/88 shadow-card">
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div class="space-y-3">
-              <div class="flex flex-wrap items-center gap-2">
-                <p class="font-display text-2xl font-semibold tracking-tight text-default">
-                  {{ savedSearch.normalizedQuery }}
-                </p>
-                <UBadge color="primary" variant="soft" class="rounded-full">
-                  {{ queryKindLabel(savedSearch.normalizedQuery) }}
-                </UBadge>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-3 text-sm text-dimmed">
-                <span>
-                  Saved
-                  <NuxtTime
-                    :datetime="savedSearch.updatedAt"
-                    year="numeric"
-                    month="short"
-                    day="numeric"
-                    hour="numeric"
-                    minute="2-digit"
-                  />
-                </span>
-              </div>
-
-              <div class="space-y-3" data-testid="saved-search-preview">
-                <div class="flex flex-wrap items-center gap-2">
-                  <UBadge
-                    :color="previewStatusColor(savedSearch.normalizedQuery)"
-                    variant="soft"
-                    class="rounded-full"
-                  >
-                    {{ previewHeadline(savedSearch.normalizedQuery) }}
-                  </UBadge>
-                  <span class="text-sm text-muted">
-                    {{ previewDescription(savedSearch.normalizedQuery) }}
-                  </span>
-                </div>
-
-                <div
-                  v-if="hasPreviewResults(savedSearch.normalizedQuery)"
-                  class="flex flex-wrap gap-2"
-                >
-                  <UBadge
-                    v-for="result in previewResults(savedSearch.normalizedQuery)"
-                    :key="result.domain"
-                    :color="statusColor(result.status)"
-                    variant="outline"
-                    class="rounded-full"
-                  >
-                    {{ result.domain }} · {{ statusLabel(result.status) }}
-                  </UBadge>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-              <UButton
-                :to="searchHref(savedSearch.normalizedQuery)"
-                color="primary"
-                variant="soft"
-                icon="i-lucide-arrow-up-right"
-              >
-                Reopen
-              </UButton>
-              <UButton
-                color="neutral"
-                variant="ghost"
-                icon="i-lucide-trash-2"
-                :loading="isRemoving(savedSearch.id)"
-                data-testid="saved-search-remove"
-                @click="emit('remove', savedSearch)"
-              >
-                Remove
-              </UButton>
-            </div>
+        <!-- Query info -->
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <NuxtLink
+              :to="searchHref(savedSearch.normalizedQuery)"
+              class="font-mono text-sm font-medium text-highlighted no-underline hover:text-primary"
+            >
+              {{ savedSearch.normalizedQuery }}
+            </NuxtLink>
+            <UBadge color="neutral" variant="outline" size="sm" class="rounded-full">
+              {{ queryKindLabel(savedSearch.normalizedQuery) }}
+            </UBadge>
+            <UBadge
+              :color="previewColor(savedSearch.normalizedQuery)"
+              variant="soft"
+              size="sm"
+              class="rounded-full"
+              data-testid="saved-search-preview"
+            >
+              {{ previewHeadline(savedSearch.normalizedQuery) }}
+            </UBadge>
           </div>
-        </UCard>
-      </li>
-    </ul>
+
+          <div class="mt-1 flex flex-wrap items-center gap-3 text-[10px] text-dimmed">
+            <span>
+              Saved
+              <NuxtTime
+                :datetime="savedSearch.updatedAt"
+                year="numeric"
+                month="short"
+                day="numeric"
+              />
+            </span>
+            <template v-if="previewResults(savedSearch.normalizedQuery).length > 0">
+              <span
+                v-for="result in previewResults(savedSearch.normalizedQuery)"
+                :key="result.domain"
+                class="font-mono"
+                :class="{
+                  'text-success': result.status === 'available',
+                  'text-muted': result.status === 'taken',
+                  'text-warning': result.status === 'unknown',
+                }"
+              >
+                {{ result.domain }}
+              </span>
+            </template>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex shrink-0 items-center gap-1.5">
+          <UButton
+            :to="searchHref(savedSearch.normalizedQuery)"
+            color="primary"
+            variant="soft"
+            size="xs"
+            icon="i-lucide-arrow-up-right"
+          >
+            Reopen
+          </UButton>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            icon="i-lucide-trash-2"
+            :loading="isRemoving(savedSearch.id)"
+            data-testid="saved-search-remove"
+            @click="emit('remove', savedSearch)"
+          >
+            Remove
+          </UButton>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

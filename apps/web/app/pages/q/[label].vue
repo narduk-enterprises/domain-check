@@ -1,5 +1,30 @@
 <script setup lang="ts">
-const { canonicalUrl, query } = await useDomainSearchPageRoute()
+import { buildCanonicalSearchPath, readDomainRouteQuery } from '#shared/domainSearch'
+
+const route = useRoute()
+const config = useRuntimeConfig()
+
+const query = computed(() =>
+  readDomainRouteQuery({
+    label: route.params.label,
+    domain: route.params.domain,
+    q: route.query.q,
+  }),
+)
+const canonicalPath = computed(() => buildCanonicalSearchPath(query.value))
+const canonicalUrl = computed(() =>
+  new URL(canonicalPath.value, config.public.appUrl).toString(),
+)
+
+// Server-only 301 for legacy ?q= or non-canonical path
+if (import.meta.server) {
+  const hasLegacyQuery =
+    typeof route.query.q === 'string' || Array.isArray(route.query.q)
+  const needsRedirect = route.path !== canonicalPath.value || hasLegacyQuery
+  if (needsRedirect) {
+    await navigateTo(canonicalPath.value, { redirectCode: 301 })
+  }
+}
 
 const title = computed(() => `${query.value} domain check`)
 const description = computed(
@@ -9,7 +34,6 @@ const description = computed(
 
 definePageMeta({
   layout: 'blank',
-  key: (route) => route.fullPath,
 })
 
 useSeo({
@@ -29,5 +53,5 @@ useWebPageSchema({
 </script>
 
 <template>
-  <DomainSearchExperience />
+  <DomainSearchShell />
 </template>
