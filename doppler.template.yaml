@@ -5,4 +5,4 @@
 # Narduk hub: `narduk-nuxt-template` (dev config should include APPLE_* for MapKit showcase).
 setup:
   project: domain-check
-  config: dev
+  config: local
