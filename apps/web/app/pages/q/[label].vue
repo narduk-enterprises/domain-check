@@ -12,14 +12,11 @@ const query = computed(() =>
   }),
 )
 const canonicalPath = computed(() => buildCanonicalSearchPath(query.value))
-const canonicalUrl = computed(() =>
-  new URL(canonicalPath.value, config.public.appUrl).toString(),
-)
+const canonicalUrl = computed(() => new URL(canonicalPath.value, config.public.appUrl).toString())
 
 // Server-only 301 for legacy ?q= or non-canonical path
 if (import.meta.server) {
-  const hasLegacyQuery =
-    typeof route.query.q === 'string' || Array.isArray(route.query.q)
+  const hasLegacyQuery = typeof route.query.q === 'string' || Array.isArray(route.query.q)
   const needsRedirect = route.path !== canonicalPath.value || hasLegacyQuery
   if (needsRedirect) {
     await navigateTo(canonicalPath.value, { redirectCode: 301 })

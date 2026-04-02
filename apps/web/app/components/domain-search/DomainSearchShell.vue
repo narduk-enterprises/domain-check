@@ -59,7 +59,11 @@ function trackRegistrarClick(domain: string, placement: 'featured' | 'result') {
         <div class="flex items-center gap-3 pb-4">
           <DomainSearchModeToggle v-model="mode" />
           <p class="text-xs text-dimmed">
-            {{ mode === 'scan' ? 'Compare multiple keywords at once.' : 'One keyword or exact domain.' }}
+            {{
+              mode === 'scan'
+                ? 'Compare multiple keywords at once.'
+                : 'One keyword or exact domain.'
+            }}
           </p>
         </div>
 

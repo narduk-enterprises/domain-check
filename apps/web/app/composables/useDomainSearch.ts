@@ -57,8 +57,7 @@ export function useDomainSearch() {
       for (const [index, response] of responses.entries()) {
         const query = queries[index] ?? ''
         if (!query) continue
-        results[query] =
-          response.status === 'fulfilled' ? response.value : null
+        results[query] = response.status === 'fulfilled' ? response.value : null
       }
 
       scanResults.value = results
@@ -136,7 +135,13 @@ export function useDomainSearch() {
   onBeforeUnmount(() => {
     clearScheduledLookup()
   })
-  const { data, error, status, refresh, clear: _clear } = useAsyncData<DomainSearchResponse>(
+  const {
+    data,
+    error,
+    status,
+    refresh,
+    clear: _clear,
+  } = useAsyncData<DomainSearchResponse>(
     'domain-search',
     async (_nuxtApp, { signal }) => {
       const query = settledQuery.value

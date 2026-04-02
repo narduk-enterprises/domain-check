@@ -1,8 +1,8 @@
 # Shared Layer Auth Prompt
 
-Use this prompt when the shared template maintainer is ready to absorb the
-fleet auth contract into `layers/narduk-nuxt-layer/` so downstream apps do not
-need to keep app-level auth overrides forever.
+Use this prompt when the shared template maintainer is ready to absorb the fleet
+auth contract into `layers/narduk-nuxt-layer/` so downstream apps do not need to
+keep app-level auth overrides forever.
 
 ## Prompt
 

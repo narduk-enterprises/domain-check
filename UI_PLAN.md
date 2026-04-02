@@ -194,8 +194,8 @@ naming workflow.
 - exact domain → `/d/[domain]`
 - legacy `/?q=` → canonical redirect
 - multi-keyword scan may stay on `/q/[label]` only if you deliberately serialize
-  a bulk label concept, otherwise keep scan as client state initiated from `/` in
-  V1
+  a bulk label concept, otherwise keep scan as client state initiated from `/`
+  in V1
 
 That last point matters: bulk scan is a workflow, not obviously an SEO route.
 

@@ -4,5 +4,9 @@
   "description": "A tool for checking if domains are available",
   "url": "https://domain-check.nard.uk",
   "provisionedAt": "2026-03-30T17:37:27.125Z",
-  "shortDescription": "A tool for checking if domains are available"
+  "shortDescription": "A tool for checking if domains are available",
+  "templateLayer": {
+    "mode": "bundled",
+    "bundles": ["auth", "analytics"]
+  }
 }

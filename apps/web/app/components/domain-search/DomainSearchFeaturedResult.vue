@@ -21,9 +21,7 @@ const emit = defineEmits<{
       <p class="mt-1 font-mono text-lg font-semibold text-highlighted">
         {{ result.domain }}
       </p>
-      <p class="mt-0.5 text-xs text-muted">
-        No live RDAP registration record found.
-      </p>
+      <p class="mt-0.5 text-xs text-muted">No live RDAP registration record found.</p>
     </div>
 
     <div class="flex shrink-0 items-center gap-2">

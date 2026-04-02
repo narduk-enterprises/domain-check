@@ -28,9 +28,7 @@ const nonFeaturedResults = computed(() => {
   return props.results.filter((r) => r.domain !== featuredResult.value!.domain)
 })
 
-const availableCount = computed(
-  () => props.results.filter((r) => r.status === 'available').length,
-)
+const availableCount = computed(() => props.results.filter((r) => r.status === 'available').length)
 </script>
 
 <template>
@@ -44,10 +42,7 @@ const availableCount = computed(
         </template>
       </span>
 
-      <span
-        v-if="isRefreshing"
-        class="inline-flex items-center gap-1 text-primary"
-      >
+      <span v-if="isRefreshing" class="inline-flex items-center gap-1 text-primary">
         <UIcon name="i-lucide-loader-2" class="size-3 animate-spin" />
         Refreshing
       </span>
@@ -67,12 +62,8 @@ const availableCount = computed(
       v-if="!hasQuery"
       class="rounded-lg border border-default bg-muted/50 px-4 py-6 text-center"
     >
-      <p class="text-sm text-muted">
-        Type a keyword or paste a domain to start checking.
-      </p>
-      <p class="mt-1 text-xs text-dimmed">
-        Paste multiple lines to scan in bulk.
-      </p>
+      <p class="text-sm text-muted">Type a keyword or paste a domain to start checking.</p>
+      <p class="mt-1 text-xs text-dimmed">Paste multiple lines to scan in bulk.</p>
     </div>
 
     <!-- No results -->

@@ -183,9 +183,9 @@ patterns:
 - **Data & API**: Use `useAppDatabase`, layer `useDatabase` rules,
   `withValidatedBody` / mutation wrappers, `#server/` imports, and existing D1 +
   Drizzle patterns.
-- **UI & SEO**: Use Nuxt UI v4, `useSeo` + Schema.org helpers,
-  `useFetch` / `useAsyncData` (no raw `$fetch` in pages). Reuse OgImage
-  templates from the layer where applicable.
+- **UI & SEO**: Use Nuxt UI v4, `useSeo` + Schema.org helpers, `useFetch` /
+  `useAsyncData` (no raw `$fetch` in pages). Reuse OgImage templates from the
+  layer where applicable.
 - **Analytics / admin patterns**: Wire through existing PostHog, GA, or admin
   patterns if the template already exposes them; do not duplicate trackers or
   admin APIs.

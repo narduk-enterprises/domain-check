@@ -51,12 +51,7 @@ function helperText(result: DomainResult) {
         <span v-if="result.registrar">{{ result.registrar }}</span>
         <span v-if="result.expiresAt">
           Exp
-          <NuxtTime
-            :datetime="result.expiresAt"
-            year="numeric"
-            month="short"
-            day="numeric"
-          />
+          <NuxtTime :datetime="result.expiresAt" year="numeric" month="short" day="numeric" />
         </span>
       </div>
     </div>
