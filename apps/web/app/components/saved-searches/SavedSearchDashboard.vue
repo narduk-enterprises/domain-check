@@ -45,8 +45,7 @@ function previewFor(query: string) {
 
 function previewHeadline(query: string) {
   const preview = previewFor(query)
-  if (!preview)
-    return livePreviews.isLoading.value ? 'Refreshing' : 'No preview'
+  if (!preview) return livePreviews.isLoading.value ? 'Refreshing' : 'No preview'
 
   if (preview.exactMatch?.status === 'taken') return 'Taken'
   if (preview.exactMatch?.status === 'available') return 'Open'
@@ -99,9 +98,7 @@ function previewColor(query: string) {
       data-testid="saved-searches-empty"
     >
       <p class="text-sm text-muted">Nothing saved yet.</p>
-      <p class="mt-1 text-xs text-dimmed">
-        Save a query from search and it will appear here.
-      </p>
+      <p class="mt-1 text-xs text-dimmed">Save a query from search and it will appear here.</p>
       <UButton to="/" color="primary" variant="soft" size="sm" class="mt-3" icon="i-lucide-search">
         Open search
       </UButton>

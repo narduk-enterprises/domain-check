@@ -40,9 +40,9 @@ test.describe('domain search UI (mocked)', () => {
     await page.goto('/')
     await waitForHydration(page)
 
-    await expect(
-      page.getByText('Type a word and stop thinking about the rest.'),
-    ).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Type a word and stop thinking about the rest.')).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByPlaceholder(/try atlas or atlas\.com/i)).toBeVisible()
   })
 
@@ -94,12 +94,8 @@ test.describe('domain search UI (mocked)', () => {
     await page.getByRole('button', { name: /check/i }).click()
 
     await expect(page.getByText('Best open option')).toBeVisible({ timeout: 10_000 })
-    await expect(
-      page.getByRole('link', { name: /register/i }).first(),
-    ).toBeVisible()
-    await expect(
-      page.getByRole('link', { name: /inspect/i }).first(),
-    ).toBeVisible()
+    await expect(page.getByRole('link', { name: /register/i }).first()).toBeVisible()
+    await expect(page.getByRole('link', { name: /inspect/i }).first()).toBeVisible()
   })
 
   /* ---- error state ---- */
@@ -113,9 +109,9 @@ test.describe('domain search UI (mocked)', () => {
     await page.getByPlaceholder(/try atlas/i).fill('errortest')
     await page.getByRole('button', { name: /check/i }).click()
 
-    await expect(
-      page.getByText(/some registries did not answer in time/i),
-    ).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/some registries did not answer in time/i)).toBeVisible({
+      timeout: 10_000,
+    })
   })
 
   /* ---- refreshing indicator ---- */
@@ -144,9 +140,7 @@ test.describe('domain search UI (mocked)', () => {
     await waitForHydration(page)
 
     await expect(page.getByRole('link', { name: /sign in/i })).toBeVisible()
-    await expect(
-      page.getByRole('link', { name: /^saved$/i }),
-    ).not.toBeVisible()
+    await expect(page.getByRole('link', { name: /^saved$/i })).not.toBeVisible()
   })
 })
 
@@ -166,18 +160,14 @@ test.describe('domain search routing', () => {
 
   /* ---- debounce updates URL (intra-page, /q → /q) ---- */
 
-  test('typing a keyword updates URL via router.replace within /q/ page', async ({
-    page,
-  }) => {
+  test('typing a keyword updates URL via router.replace within /q/ page', async ({ page }) => {
     await page.goto('/q/placeholder')
     await waitForHydration(page)
 
     await page.getByRole('textbox').fill('atlas')
 
     // Vue Router's replaceState is invisible to CDP, so read location directly
-    await expect
-      .poll(() => getPathname(page), { timeout: 5_000 })
-      .toBe('/q/atlas')
+    await expect.poll(() => getPathname(page), { timeout: 5_000 }).toBe('/q/atlas')
   })
 
   /* ---- Enter key submits ---- */
@@ -189,9 +179,7 @@ test.describe('domain search routing', () => {
     await page.getByRole('textbox').fill('rally')
     await page.getByRole('textbox').press('Enter')
 
-    await expect
-      .poll(() => getPathname(page), { timeout: 5_000 })
-      .toBe('/q/rally')
+    await expect.poll(() => getPathname(page), { timeout: 5_000 }).toBe('/q/rally')
     await expect(page.getByText('rally.com').first()).toBeVisible({ timeout: 15_000 })
   })
 
@@ -204,9 +192,7 @@ test.describe('domain search routing', () => {
     // Click the "atlas" sample pill
     await page.getByRole('button', { name: 'atlas' }).click()
 
-    await expect
-      .poll(() => getPathname(page), { timeout: 5_000 })
-      .toBe('/q/atlas')
+    await expect.poll(() => getPathname(page), { timeout: 5_000 }).toBe('/q/atlas')
     await expect(page.getByText('atlas.com').first()).toBeVisible({ timeout: 15_000 })
   })
 
@@ -221,9 +207,7 @@ test.describe('domain search routing', () => {
 
     // normalizeDomainQuery strips protocol, www, path → "example.com"
     // buildCanonicalSearchPath → "/d/example.com"
-    await expect
-      .poll(() => getPathname(page), { timeout: 5_000 })
-      .toBe('/d/example.com')
+    await expect.poll(() => getPathname(page), { timeout: 5_000 }).toBe('/d/example.com')
   })
 
   /* ---- direct /q/ navigation (live API, structural only) ---- */

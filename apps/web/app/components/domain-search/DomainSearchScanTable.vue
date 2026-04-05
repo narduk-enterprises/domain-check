@@ -141,10 +141,7 @@ function handleCellClick(query: string, tld: string) {
     <div class="min-w-[700px]">
       <!-- Header -->
       <div class="flex border-b border-default bg-muted/50 text-xs font-medium text-muted">
-        <div
-          class="w-28 shrink-0 cursor-pointer px-3 py-2"
-          @click="toggleSort('keyword')"
-        >
+        <div class="w-28 shrink-0 cursor-pointer px-3 py-2" @click="toggleSort('keyword')">
           Keyword {{ sortIndicator('keyword') }}
         </div>
         <div class="w-32 shrink-0 px-3 py-2">Best</div>
@@ -203,10 +200,7 @@ function handleCellClick(query: string, tld: string) {
       </div>
 
       <!-- Empty state -->
-      <div
-        v-if="queries.length === 0"
-        class="px-3 py-6 text-center text-xs text-muted"
-      >
+      <div v-if="queries.length === 0" class="px-3 py-6 text-center text-xs text-muted">
         Enter multiple keywords (one per line or comma-separated) to scan.
       </div>
     </div>

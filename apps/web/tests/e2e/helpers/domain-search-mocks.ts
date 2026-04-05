@@ -31,10 +31,7 @@ interface DomainSearchResponse {
 /*  Builder helpers                                                   */
 /* ------------------------------------------------------------------ */
 
-function buildResult(
-  domain: string,
-  overrides: Partial<DomainResult> = {},
-): DomainResult {
+function buildResult(domain: string, overrides: Partial<DomainResult> = {}): DomainResult {
   const tld = domain.split('.').at(-1) ?? ''
   return {
     domain,
@@ -125,11 +122,7 @@ export function buildExactDomainResponse(
     return buildResult(d, {
       isExactMatch: isExact,
       status: isExact ? status : 'taken',
-      reason: isExact
-        ? status === 'available'
-          ? 'rdap-missing'
-          : 'rdap-found'
-        : 'rdap-found',
+      reason: isExact ? (status === 'available' ? 'rdap-missing' : 'rdap-found') : 'rdap-found',
       registrar: isExact ? null : 'Example Registrar Inc.',
       purchaseUrl:
         isExact && status === 'available'
@@ -151,9 +144,7 @@ export function buildExactDomainResponse(
 /*  Mock installer                                                    */
 /* ------------------------------------------------------------------ */
 
-type MockHandler = (
-  url: URL,
-) => DomainSearchResponse | null | { error: true; status: number }
+type MockHandler = (url: URL) => DomainSearchResponse | null | { error: true; status: number }
 
 /**
  * Install an API mock for /api/domain/search on the given Playwright page.
@@ -189,10 +180,7 @@ export async function installDomainSearchMock(page: Page, handler: MockHandler) 
 /**
  * Convenience: install a mock that always returns the given response.
  */
-export async function installStaticDomainSearchMock(
-  page: Page,
-  response: DomainSearchResponse,
-) {
+export async function installStaticDomainSearchMock(page: Page, response: DomainSearchResponse) {
   await installDomainSearchMock(page, () => response)
 }
 

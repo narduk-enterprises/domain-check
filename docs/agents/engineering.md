@@ -194,7 +194,7 @@ not both with competing headers and max-width wrappers.
 ## Account Deletion and External Identity Cleanup
 
 The layer route `POST /api/auth/account/delete` calls `deleteCurrentUserAccount`
-from `#layer/server/utils/accountDeletion`.  The function accepts an optional
+from `#layer/server/utils/accountDeletion`. The function accepts an optional
 `hooks` argument of type `AccountDeletionHooks`:
 
 ```ts
@@ -215,16 +215,16 @@ await deleteCurrentUserAccount(event, user, body, hooks)
 ```
 
 Apps backed by Supabase Auth must override the layer route at
-`server/api/auth/account/delete.post.ts` to supply this hook.  The override
+`server/api/auth/account/delete.post.ts` to supply this hook. The override
 should delegate all core logic (password check, foreign-key error handling,
 session clearing) to `deleteCurrentUserAccount`; only the `beforeDelete` hook
-body is app-specific.  Apps that do not use an external identity provider can
+body is app-specific. Apps that do not use an external identity provider can
 omit the hook and leave the layer route in place.
 
 `deleteSupabaseAuthUser(event, localUserId)` is exported from
-`#server/utils/app-auth`.  It resolves the Supabase `auth_user_id` via the
+`#server/utils/app-auth`. It resolves the Supabase `auth_user_id` via the
 `auth_user_links` bridge table, then calls the Supabase Admin API with the
-service-role key.  If the local user has no Supabase link the function is a
+service-role key. If the local user has no Supabase link the function is a
 no-op, so it is safe to call unconditionally when the backend is `'supabase'`.
 
 ## Architecture Patterns
